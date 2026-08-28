@@ -433,30 +433,41 @@ bool ZmqTransport::try_send_latest_object_transforms(void *socket) {
 }
 
 bool ZmqTransport::try_send_multipart(void *socket, const std::vector<std::uint8_t> &payload) {
-    // Frame 0: roomId. Frame 1: payload. Non-blocking; EAGAIN means backpressure.
-    int rc = zmq_send(socket, room_id_bytes_.data(), room_id_bytes_.size(),
-                      ZMQ_SNDMORE | ZMQ_DONTWAIT);
-    if (rc < 0) {
+    // Only begin a multipart message once the socket says it can take one.
+    // libzmq applies the high-water mark at the *first* frame of a message, so
+    // this is where backpressure shows up — and a message that has been started
+    // cannot be taken back, so starting one we might not finish would leave a
+    // malformed frame on the wire.
+    zmq_pollitem_t item;
+    item.socket = socket;
+    item.fd = 0;
+    item.events = ZMQ_POLLOUT;
+    item.revents = 0;
+    if (zmq_poll(&item, 1, 0) <= 0 || (item.revents & ZMQ_POLLOUT) == 0) {
         return false;
     }
-    // The room frame is committed to the socket's queue at this point. libzmq
-    // does not drop a partially queued multipart message on EAGAIN for the
-    // final frame, but a failure here would leave the message unterminated, so
-    // retry the tail briefly rather than abandoning it.
-    for (int attempt = 0; attempt < 64; ++attempt) {
-        rc = zmq_send(socket, payload.data(), payload.size(), ZMQ_DONTWAIT);
-        if (rc >= 0) {
-            messages_sent_.fetch_add(1, std::memory_order_relaxed);
-            return true;
-        }
-        if (zmq_errno() != EAGAIN) {
-            break;
-        }
-        std::this_thread::sleep_for(std::chrono::microseconds(200));
+
+    // Frame 0: roomId. Frame 1: payload.
+    if (zmq_send(socket, room_id_bytes_.data(), room_id_bytes_.size(),
+                 ZMQ_SNDMORE | ZMQ_DONTWAIT) < 0) {
+        return false;
     }
-    // Send the (empty) tail so the socket is not left mid-message.
-    zmq_send(socket, "", 0, 0);
-    return false;
+
+    // The message is now open. libzmq accepts the remaining frames of a message
+    // it has already admitted, so this should not fail; if it somehow does, the
+    // stream is left mid-message and the session cannot be trusted.
+    if (zmq_send(socket, payload.data(), payload.size(), ZMQ_DONTWAIT) < 0) {
+        const std::string reason = zmq_error_text();
+        connection_error_.store(true, std::memory_order_release);
+        if (on_error_) {
+            on_error_("failed to complete a multipart send, abandoning the connection: " +
+                      reason);
+        }
+        return false;
+    }
+
+    messages_sent_.fetch_add(1, std::memory_order_relaxed);
+    return true;
 }
 
 void ZmqTransport::receive_sub(void *socket) {

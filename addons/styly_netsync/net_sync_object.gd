@@ -59,12 +59,25 @@ func _enter_tree() -> void:
 		)
 		return
 
+	_try_register()
+
+
+func _ready() -> void:
+	# _enter_tree runs top-down, so a manager placed after this node in the
+	# scene has not registered itself yet. _ready runs bottom-up, by which point
+	# every sibling exists — so retry here rather than making node order matter.
+	if _manager == null and object_id != 0:
+		_try_register()
+		if _manager == null:
+			push_warning(
+				"[STYLY NetSync] NetSyncObject '%s' found no NetSyncManager in the tree, " % name
+				+ "so it will not be synchronised. Add one to the scene."
+			)
+
+
+func _try_register() -> void:
 	_manager = NetSyncManager.instance()
 	if _manager == null:
-		push_warning(
-			"[STYLY NetSync] NetSyncObject '%s' found no NetSyncManager in the tree. " % name
-			+ "Add one before this node enters the tree."
-		)
 		return
 	_manager.register_object(self)
 	if claim_ownership_on_ready:

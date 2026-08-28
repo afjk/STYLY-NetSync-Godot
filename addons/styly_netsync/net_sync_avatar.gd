@@ -56,13 +56,7 @@ var _has_applied_pose: bool = false
 
 
 func _enter_tree() -> void:
-	_manager = NetSyncManager.instance()
-	if _manager == null:
-		push_warning(
-			"[STYLY NetSync] NetSyncAvatar '%s' found no NetSyncManager in the tree." % name
-		)
-		return
-	_manager.register_pose_source(self)
+	_try_register()
 
 
 func _exit_tree() -> void:
@@ -71,7 +65,23 @@ func _exit_tree() -> void:
 		_manager = null
 
 
+func _try_register() -> void:
+	_manager = NetSyncManager.instance()
+	if _manager != null:
+		_manager.register_pose_source(self)
+
+
 func _ready() -> void:
+	# _enter_tree runs top-down, so a manager placed later in the scene has not
+	# registered itself yet; _ready runs bottom-up, when every sibling exists.
+	if _manager == null:
+		_try_register()
+		if _manager == null:
+			push_warning(
+				"[STYLY NetSync] NetSyncAvatar '%s' found no NetSyncManager in the tree, " % name
+				+ "so it will neither publish nor receive a pose."
+			)
+
 	if is_local_avatar and xr_origin != null:
 		# Latch the rig's starting pose: the locomotion delta is measured
 		# against it, exactly as the Unity client latches its XR Origin at start.
