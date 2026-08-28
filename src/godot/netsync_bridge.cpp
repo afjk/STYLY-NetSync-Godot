@@ -400,7 +400,7 @@ void NetSyncBridge::set_local_pose(const Dictionary &pose) {
         body.physical = transform_to_wire(pose["physical"]);
     }
 
-    if (pose.has("virtuals")) {
+    if (pose.has("virtuals") && pose["virtuals"].get_type() == Variant::ARRAY) {
         const Array virtuals = pose["virtuals"];
         for (int i = 0; i < virtuals.size(); ++i) {
             if (virtuals[i].get_type() != Variant::TRANSFORM3D) {

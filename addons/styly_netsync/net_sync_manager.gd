@@ -206,17 +206,21 @@ func _process(_delta: float) -> void:
 			continue
 		if object.is_owned_by_me():
 			_bridge.submit_object_pose(object_id, object.global_transform)
+	# (Reading transforms runs no user code, so iterating live is safe here.)
 
 	# Drains the network queues and emits every signal for this frame.
 	_bridge.poll()
 
-	# Apply received poses to non-owned objects.
-	for object_id in _objects:
-		var object: NetSyncObject = _objects[object_id]
+	# Applying state runs user code — an ownership_changed handler, or a
+	# first_pose_applied handler that spawns or frees a node — which can register
+	# or unregister while we are iterating. Both loops therefore walk a snapshot
+	# rather than the live collection.
+	for object_id in _objects.keys():
+		var object: NetSyncObject = _objects.get(object_id)
 		if is_instance_valid(object):
 			object._apply_remote_state(_bridge.get_object_state(object_id))
 
-	for source in _pose_sources:
+	for source in _pose_sources.duplicate():
 		if is_instance_valid(source) and not source.is_local_avatar:
 			source._apply_remote_pose(_bridge.get_remote_pose(source.client_no))
 
