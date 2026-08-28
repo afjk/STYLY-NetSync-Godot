@@ -81,8 +81,11 @@ scons platform=android target=template_release arch=arm64
 itself and the libzmq that gets linked into it. Left unset, godot-cpp falls back
 to `ANDROID_HOME/ndk/<the version it pins>` (23.2.8568313 for godot-cpp 4.3),
 which fails unless the SDK carries that exact version — so point
-`ANDROID_NDK_ROOT` at the NDK you want and both agree. libzmq is built against
-**API level 29** with `c++_shared`, matching Godot's Android export template.
+`ANDROID_NDK_ROOT` at the NDK you want and both agree. Both are built against
+**API level 29** with `c++_shared`, matching Godot's Android export template —
+one level for the whole `.so`, since the two halves are linked together. 29 is
+also the floor imposed by the code: `getifaddrs`, which LAN discovery needs,
+only appears in bionic at API 24. `android_api_level=` overrides it.
 
 Both the debug and release variants are needed for the two Godot Android export
 presets:

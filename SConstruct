@@ -18,17 +18,27 @@ import sys
 
 EnsureSConsVersion(4, 0)
 
-# godot-cpp resolves the Android NDK as ANDROID_HOME/ndk/<the version it pins>
-# and only falls back to ANDROID_NDK_ROOT when ANDROID_HOME is unset. On a
-# machine whose SDK does not carry that exact version — CI images included —
-# that points the build at an NDK which is not installed, while a perfectly good
-# one is named by ANDROID_NDK_ROOT. Prefer the NDK that was named explicitly,
-# which is the one scripts/build_libzmq.py picks too, so both halves of the
-# build use one toolchain. An explicit ANDROID_HOME= on the command line still
-# wins.
-if ARGUMENTS.get("platform") == "android" and "ANDROID_HOME" not in ARGUMENTS:
-    if os.environ.get("ANDROID_NDK_ROOT"):
+if ARGUMENTS.get("platform") == "android":
+    # godot-cpp resolves the NDK as ANDROID_HOME/ndk/<the version it pins> and
+    # only falls back to ANDROID_NDK_ROOT when ANDROID_HOME is unset. On a
+    # machine whose SDK does not carry that exact version — CI images included —
+    # that points the build at an NDK which is not installed, while a perfectly
+    # good one is named by ANDROID_NDK_ROOT. Prefer the NDK that was named
+    # explicitly, which is the one scripts/build_libzmq.py picks too, so both
+    # halves of the build use one toolchain. An explicit ANDROID_HOME= on the
+    # command line still wins.
+    if "ANDROID_HOME" not in ARGUMENTS and os.environ.get("ANDROID_NDK_ROOT"):
         os.environ["ANDROID_HOME"] = ""
+
+    # The same goes for the API level: libzmq and this extension are linked into
+    # one .so, so building them against different bionic headers is incoherent.
+    # godot-cpp defaults to 21, and below 24 bionic hides getifaddrs(), which
+    # server discovery needs. Take libzmq's level as the single answer; an
+    # explicit android_api_level= on the command line still wins.
+    sys.path.insert(0, "scripts")
+    from build_libzmq import ANDROID_API_LEVEL
+
+    ARGUMENTS.setdefault("android_api_level", ANDROID_API_LEVEL)
 
 env = SConscript("third_party/godot-cpp/SConstruct")
 

@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
 #include <string>
 #include <thread>
 #include <vector>
@@ -735,7 +736,11 @@ void test_disconnect_clears_state_and_reconnect_works() {
 }
 
 void test_device_id_persistence() {
-    const std::string path = "/tmp/styly_netsync_device_id_test.txt";
+    // Not a hardcoded /tmp: on Windows that resolves to a `\tmp` directory on
+    // the current drive, which does not exist — the write then fails silently
+    // and the id is regenerated instead of read back.
+    const std::string path =
+        (std::filesystem::temp_directory_path() / "styly_netsync_device_id_test.txt").string();
     std::remove(path.c_str());
 
     const std::string first = load_or_create_device_id(path);
