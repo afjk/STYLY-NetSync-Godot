@@ -106,13 +106,13 @@ env.Append(CPPPATH=[os.path.join(libzmq_root, "include")])
 env.Append(CPPDEFINES=["ZMQ_STATIC"])
 env.Append(LIBS=[File(static_libzmq)])
 
-# Platform link requirements of libzmq itself.
+# Platform link requirements of libzmq itself. Android is deliberately absent:
+# bionic folds pthread and the realtime clock into libc, and ships no
+# libpthread.so or librt.so for -lpthread to find.
 if platform == "windows":
     env.Append(LIBS=["ws2_32", "iphlpapi", "rpcrt4"])
-elif platform in ("linux", "android"):
-    env.Append(LIBS=["pthread"])
-    if platform == "linux":
-        env.Append(LIBS=["rt"])
+elif platform == "linux":
+    env.Append(LIBS=["pthread", "rt"])
 
 # --- Output ------------------------------------------------------------------
 
