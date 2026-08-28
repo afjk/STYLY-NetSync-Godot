@@ -58,7 +58,8 @@ enum class EventType {
     ClientVariableChanged,
     ObjectOwnershipChanged,
     ObjectOwnershipRejected,
-    VersionMismatch,
+    /// The server's version, reported once per connection.
+    ServerVersion,
     Log,
 };
 
@@ -69,12 +70,12 @@ struct Event {
     /// ClientVariableChanged (owner).
     int client_no = 0;
     /// ObjectOwnershipChanged: new owner. ObjectOwnershipRejected: current owner.
-    /// VersionMismatch: server major. ConnectionStateChanged: the new state.
+    /// ServerVersion: major. ConnectionStateChanged: the new state.
     int value_a = 0;
     /// ObjectOwnershipChanged: previous owner. ObjectOwnershipRejected: reason.
-    /// VersionMismatch: server minor.
+    /// ServerVersion: minor.
     int value_b = 0;
-    /// VersionMismatch: server patch.
+    /// ServerVersion: patch.
     int value_c = 0;
     std::uint32_t object_id = 0;
     /// Variable name, RPC function name, or log/error text.

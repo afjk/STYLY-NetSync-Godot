@@ -66,6 +66,12 @@ class Probe:
         ]
         if kwargs.pop("stealth", False):
             command.append("--stealth")
+        if "discover" in kwargs:
+            kwargs.pop("discover")
+            # Discovery mode: drop the explicit address the defaults added.
+            index = command.index("--server")
+            del command[index : index + 2]
+            command.append("--discover")
         for key, value in kwargs.items():
             command += ["--" + str(key).replace("_", "-"), str(value)]
 
@@ -162,7 +168,7 @@ class Probe:
 class ServerFixture:
     """A real NetSyncServer on ephemeral ports."""
 
-    def __init__(self):
+    def __init__(self, discovery_port: int | None = None):
         # The server configures loguru itself at INFO/DEBUG, which buries the
         # test output. Re-point the sink before starting it.
         try:
@@ -179,13 +185,16 @@ class ServerFixture:
         self.transform_port = free_port()
         self.pub_port = free_port()
 
+        # Discovery normally binds the well-known port 9999, which would clash
+        # between concurrent runs, so it is off unless a test asks for it on a
+        # port of its own.
+        self.discovery_port = discovery_port
         self.server = NetSyncServer(
             control_port=self.control_port,
             transform_port=self.transform_port,
             pub_port=self.pub_port,
-            # Discovery binds a fixed well-known port and would clash between
-            # concurrent runs; it is covered separately by the unit tests.
-            enable_server_discovery=False,
+            enable_server_discovery=discovery_port is not None,
+            server_discovery_port=discovery_port,
         )
         self._thread = threading.Thread(target=self.server.start, daemon=True)
         self._thread.start()
@@ -512,6 +521,58 @@ def test_reconnect_keeps_identity(binary: Path, server: ServerFixture) -> None:
         second.close()
 
 
+def test_lan_discovery(binary: Path) -> None:
+    """The client must find a server by itself, with no address configured."""
+    print("\n== LAN discovery ==")
+    discovery_port = free_port()
+    server = ServerFixture(discovery_port=discovery_port)
+    # The discovery responder binds and starts its threads after the ZeroMQ
+    # sockets are up; give it a moment before probing.
+    time.sleep(1.0)
+
+    probe = Probe(
+        binary,
+        "seeker",
+        # No --server: discovery has to supply the address and all three ports.
+        room="room_discovery",
+        discover=None,
+        discovery_port=discovery_port,
+    )
+    try:
+        probe.wait_result("started")
+        probe.send("connect")
+        check(probe.wait_result("connect")["ok"], "connect started discovery")
+
+        found = probe.wait_event("server_discovered", timeout=25)
+        check(
+            found["value_a"] == server.control_port,
+            f"discovery reported the control port ({found['value_a']})",
+        )
+        check(
+            found["value_b"] == server.transform_port,
+            f"discovery reported the transform port ({found['value_b']})",
+        )
+        check(
+            found["value_c"] == server.pub_port,
+            f"discovery reported the pub port ({found['value_c']})",
+        )
+        print(f"   discovered '{found['new_value']}' at {found['name']}")
+
+        # And the ports it reported must actually work.
+        probe.send("wait_ready 25")
+        ready = probe.wait_result("ready", timeout=30)
+        check(ready["client_no"] > 0, "the discovered server completed the handshake")
+
+        state = probe.query("state", "state")
+        check(
+            state["server_address"].endswith("127.0.0.1"),
+            f"the resolved address is the discovered one ({state['server_address']})",
+        )
+    finally:
+        probe.close()
+        server.stop()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--probe", help="Path to the netsync_probe binary")
@@ -558,6 +619,9 @@ def main() -> int:
         test_reconnect_keeps_identity(binary, server)
     finally:
         server.stop()
+
+    # Discovery needs a server that advertises itself, so it gets its own.
+    test_lan_discovery(binary)
 
     print()
     if FAILURES:

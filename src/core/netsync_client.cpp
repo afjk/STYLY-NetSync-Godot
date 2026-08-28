@@ -113,6 +113,12 @@ bool NetSyncClient::connect(const ClientConfig &config) {
         return false;
     }
 
+    // Reconnecting after an error: the previous discovery and network threads
+    // may still be alive, and start() would refuse. Stop them first so a retry
+    // after a failed connection actually reconnects.
+    discovery_.stop();
+    transport_.stop();
+
     config_ = config;
     config_.transform_send_rate = std::min(60.0, std::max(0.5, config_.transform_send_rate));
     if (config_.room_id.empty()) {
@@ -268,8 +274,9 @@ void NetSyncClient::drain_internal_events(std::vector<Event> &events) {
     for (const PendingNotification &notification : notifications) {
         switch (notification.kind) {
             case PendingNotification::Kind::Connected: {
+                // The initial-sync timeout is seeded in poll(), which has the
+                // host's clock; the network thread has no business setting it.
                 set_state(ConnectionState::Connected, events);
-                variables_.on_connection_established(0.0);
                 break;
             }
             case PendingNotification::Kind::Error: {
@@ -410,16 +417,18 @@ void NetSyncClient::process_control_payload(const std::vector<std::uint8_t> &pay
             if (!version_checked_) {
                 version_checked_ = true;
                 Event event;
-                event.type = EventType::VersionMismatch;
+                event.type = EventType::ServerVersion;
                 event.value_a = result.server_version_major;
                 event.value_b = result.server_version_minor;
                 event.value_c = result.server_version_patch;
                 event.name = std::to_string(result.server_version_major) + "." +
                              std::to_string(result.server_version_minor) + "." +
                              std::to_string(result.server_version_patch);
-                // The host decides what "compatible" means for its own package
-                // version; the event always carries the server version so it
-                // can compare. Only emitted once per connection.
+                // Reported once per connection. Upstream Unity compares this
+                // against its own package version and warns on a major/minor
+                // mismatch; this client has no package version of its own to
+                // compare against, so it surfaces the server's version and
+                // leaves the policy to the host.
                 events.push_back(event);
             }
 

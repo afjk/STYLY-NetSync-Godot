@@ -96,7 +96,7 @@ func _drive_local_avatar(delta: float) -> void:
 
 func _refresh_status() -> void:
 	var lines := [
-		"state: [b]%s[/b]" % _state_name(),
+		"state: [b]%s[/b]" % _manager.get_connection_state_name(),
 		"client number: [b]%d[/b]" % _manager.client_no,
 		"ready: [b]%s[/b]" % ("yes" if _manager.is_ready() else "no"),
 		"server: %s" % (_manager.resolved_server_address if not _manager.resolved_server_address.is_empty() else "-"),
@@ -112,22 +112,6 @@ func _refresh_status() -> void:
 		"in room: " + (", ".join(clients) if clients.size() > 0 else "-")
 	)
 
-
-func _state_name() -> String:
-	match _manager.get_connection_state():
-		NetSyncManager.State.STATE_DISCONNECTED:
-			return "disconnected"
-		NetSyncManager.State.STATE_CONNECTING:
-			return "connecting"
-		NetSyncManager.State.STATE_CONNECTED:
-			return "connected"
-		NetSyncManager.State.STATE_SYNCHRONIZING:
-			return "synchronizing"
-		NetSyncManager.State.STATE_READY:
-			return "ready"
-		NetSyncManager.State.STATE_ERROR:
-			return "error"
-	return "unknown"
 
 # --- UI callbacks ---------------------------------------------------------------
 

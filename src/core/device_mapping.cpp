@@ -63,10 +63,12 @@ void DeviceMapping::update_presence(const std::vector<int> &alive, std::vector<i
     connected.clear();
     disconnected.clear();
 
-    std::set<int> alive_set(alive.begin(), alive.end());
+    const std::set<int> alive_set(alive.begin(), alive.end());
 
-    // Anything seen in this snapshot but not yet announced becomes pending
-    // until its device id arrives, then is announced exactly once.
+    // A client is announced only once its device id is known, so a listener can
+    // rely on avatar_connected carrying one. Until then it waits in
+    // `pending_clients_`, which is how upstream handles a pose frame that beats
+    // its ID-mapping message.
     for (int client_no : alive_set) {
         if (announced_clients_.count(client_no) != 0) {
             continue;
@@ -80,18 +82,9 @@ void DeviceMapping::update_presence(const std::vector<int> &alive, std::vector<i
         }
     }
 
-    // A pending client whose mapping arrived after its last pose frame is still
-    // announced, so a stealth-adjacent ordering race cannot swallow the event.
+    // Forget anything pending that has since left the room.
     for (auto it = pending_clients_.begin(); it != pending_clients_.end();) {
-        if (alive_set.count(*it) != 0 && client_no_to_device_id_.count(*it) != 0) {
-            announced_clients_.insert(*it);
-            connected.push_back(*it);
-            it = pending_clients_.erase(it);
-        } else if (alive_set.count(*it) == 0) {
-            it = pending_clients_.erase(it);
-        } else {
-            ++it;
-        }
+        it = alive_set.count(*it) == 0 ? pending_clients_.erase(it) : std::next(it);
     }
 
     for (auto it = announced_clients_.begin(); it != announced_clients_.end();) {
@@ -102,9 +95,6 @@ void DeviceMapping::update_presence(const std::vector<int> &alive, std::vector<i
             ++it;
         }
     }
-
-    std::sort(connected.begin(), connected.end());
-    connected.erase(std::unique(connected.begin(), connected.end()), connected.end());
 }
 
 void DeviceMapping::clear() {

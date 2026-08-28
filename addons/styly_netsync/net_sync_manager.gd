@@ -276,6 +276,12 @@ func get_connection_state() -> int:
 	return _bridge.get_connection_state() if _bridge != null else State.STATE_DISCONNECTED
 
 
+## The current state as a lowercase name — "disconnected", "connecting",
+## "connected", "synchronizing", "ready" or "error". Handy for a status readout.
+func get_connection_state_name() -> String:
+	return _bridge.get_connection_state_name() if _bridge != null else "disconnected"
+
+
 ## The client number the server assigned, or 0 before the handshake completes.
 var client_no: int:
 	get:

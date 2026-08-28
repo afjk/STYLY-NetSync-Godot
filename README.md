@@ -182,7 +182,7 @@ Verified against upstream commit
 
 * **47 message cases** byte-identical to the upstream Python serializer, plus
   **2016** quaternion and **104** quantisation vectors.
-* **34 checks** against a real STYLY NetSync server.
+* **40 checks** against a real STYLY NetSync server, LAN discovery included.
 * **14 checks** end-to-end through the Godot addon.
 
 Known differences, what has *not* been tested (Unity in the loop, Android,

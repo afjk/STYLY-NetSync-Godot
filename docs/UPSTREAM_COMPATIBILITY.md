@@ -67,7 +67,7 @@ real server in the integration run below.
 
 `tests/integration/test_against_server.py` starts a real
 `styly_netsync.NetSyncServer` **0.17.4** and drives the native client against it.
-**34 checks, all passing:**
+**40 checks, all passing:**
 
 * client hello accepted, client number assigned, `IsReady`-equivalent reached;
 * server version reported through `MSG_DEVICE_ID_MAPPING`;
@@ -83,7 +83,9 @@ real server in the integration run below.
   with reason code 1, and a legitimate release;
 * stealth client: joins, appears in the ID mapping flagged stealth, drives
   network variables, and publishes no avatar pose;
-* reconnect with the same `deviceId` is reassigned the same client number.
+* reconnect with the same `deviceId` is reassigned the same client number;
+* **LAN discovery**: a client started with no configured address finds the
+  server, is told all three ports, and completes the handshake on them.
 
 ### Godot end-to-end — automated
 

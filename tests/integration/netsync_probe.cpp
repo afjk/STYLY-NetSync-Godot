@@ -92,7 +92,7 @@ const char *event_name(EventType type) {
             return "object_ownership_changed";
         case EventType::ObjectOwnershipRejected:
             return "object_ownership_rejected";
-        case EventType::VersionMismatch:
+        case EventType::ServerVersion:
             return "server_version";
         case EventType::Log:
             return "log";

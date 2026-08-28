@@ -8,7 +8,7 @@ development. What *has* been verified automatically is the layer underneath it:
 every message this client emits is byte-identical to the upstream Python
 serializer's output for the same input (47 cases, 2016 quaternion vectors), and
 the client interoperates with the real STYLY NetSync server that Unity talks to
-(34 checks). See [UPSTREAM_COMPATIBILITY.md](UPSTREAM_COMPATIBILITY.md). This
+(40 checks). See [UPSTREAM_COMPATIBILITY.md](UPSTREAM_COMPATIBILITY.md). This
 document is the remaining human-in-the-loop step.
 
 ## What you need

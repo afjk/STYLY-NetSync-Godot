@@ -327,7 +327,7 @@ void NetSyncBridge::emit_event(const Event &event) {
             emit_signal("object_ownership_rejected", static_cast<int64_t>(event.object_id),
                         event.value_a, event.value_b);
             break;
-        case EventType::VersionMismatch:
+        case EventType::ServerVersion:
             emit_signal("server_version_received", event.value_a, event.value_b, event.value_c);
             break;
         case EventType::Log:
