@@ -72,6 +72,18 @@ func _try_register() -> void:
 
 
 func _ready() -> void:
+	# Node-typed @export properties are stored as a NodePath and are meant to be
+	# resolved automatically on scene instantiation. That resolution has been
+	# observed to silently fail for scenes instantiated at runtime via
+	# PackedScene.instantiate() (e.g. this repo's remote-avatar spawning), so
+	# fall back to the conventional child names if the export came in unset.
+	if head == null:
+		head = get_node_or_null("Head") as Node3D
+	if right_hand == null:
+		right_hand = get_node_or_null("RightHand") as Node3D
+	if left_hand == null:
+		left_hand = get_node_or_null("LeftHand") as Node3D
+
 	# _enter_tree runs top-down, so a manager placed later in the scene has not
 	# registered itself yet; _ready runs bottom-up, when every sibling exists.
 	if _manager == null:
