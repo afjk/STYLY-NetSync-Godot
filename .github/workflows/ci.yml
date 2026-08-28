@@ -1,0 +1,165 @@
+# SPDX-License-Identifier: Apache-2.0
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop", "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The core of the compatibility guarantee: the bytes this client puts on the
+  # wire must equal, exactly, the bytes upstream's Python serializer produces.
+  native-tests:
+    name: Native tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure --timeout 180
+
+  # Fails if tests/golden/vectors.json has drifted from what upstream produces —
+  # which is how a protocol change upstream surfaces here.
+  golden-vectors-are-current:
+    name: Golden vectors match upstream
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Regenerate from upstream and compare
+        run: python3 tests/tools/generate_golden_vectors.py --check
+
+  # Builds the GDExtension and runs both integration suites against a real
+  # STYLY NetSync server.
+  integration:
+    name: Integration against a real server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install SCons and Ninja
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install scons
+          sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Cache the libzmq build
+        uses: actions/cache@v4
+        with:
+          path: build/libzmq
+          key: libzmq-${{ runner.os }}-${{ hashFiles('scripts/build_libzmq.py', '.gitmodules') }}
+
+      - name: Build the GDExtension
+        run: scons target=template_debug -j$(nproc)
+
+      - name: Build the native probe
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel --target netsync_probe
+
+      - name: Install the upstream server (read-only, pinned)
+        run: |
+          git clone --filter=blob:none https://github.com/styly-dev/STYLY-NetSync.git upstream
+          git -C upstream checkout 72fc88409d36e146b03f2d90bd11ebd9998408a3
+          python3 -m pip install ./upstream/STYLY-NetSync-Server
+
+      - name: Native client against the server
+        run: python3 tests/integration/test_against_server.py --probe build/netsync_probe
+
+      - name: Install Godot
+        run: |
+          GODOT_VERSION=4.4.1
+          curl -sSL -o godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          chmod +x "Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          echo "GODOT=$PWD/Godot_v${GODOT_VERSION}-stable_linux.x86_64" >> "$GITHUB_ENV"
+
+      - name: Import the project
+        # Godot only discovers a .gdextension during the scan that first sees it,
+        # so the first run cannot compile the scripts that use it. The second
+        # run is the one that must be clean.
+        run: |
+          "$GODOT" --headless --path . --editor --quit || true
+          "$GODOT" --headless --path . --editor --quit
+
+      - name: Godot addon against the server
+        run: python3 tests/integration/test_godot_client.py
+
+      - name: Check the samples load and run
+        run: |
+          "$GODOT" --headless --path . --quit-after 200
+          "$GODOT" --headless --path . --quit-after 200 res://samples/xr/xr_demo.tscn
+
+  # The Android build is the one that must not regress silently: it is the path
+  # to Quest and PICO.
+  android-build:
+    name: Android arm64 build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26d
+
+      - name: Install SCons and Ninja
+        run: |
+          python3 -m pip install --upgrade pip scons
+          sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Build for arm64-v8a
+        env:
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: scons platform=android target=template_release arch=arm64 -j$(nproc)
+
+      - name: Confirm the library was produced
+        run: |
+          ls -la addons/styly_netsync/bin/
+          test -f addons/styly_netsync/bin/libstyly_netsync.android.template_release.arm64.so
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-arm64
+          path: addons/styly_netsync/bin/libstyly_netsync.android.*.so

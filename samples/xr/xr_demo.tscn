@@ -1,0 +1,82 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://samples/xr/xr_demo.gd" id="1_xr"]
+[ext_resource type="Script" path="res://addons/styly_netsync/net_sync_manager.gd" id="2_manager"]
+[ext_resource type="Script" path="res://addons/styly_netsync/net_sync_avatar.gd" id="3_avatar"]
+[ext_resource type="Script" path="res://addons/styly_netsync/net_sync_xr_adapter.gd" id="4_adapter"]
+
+[sub_resource type="PlaneMesh" id="Mesh_ground"]
+size = Vector2(20, 20)
+
+[sub_resource type="StandardMaterial3D" id="Material_ground"]
+albedo_color = Color(0.18, 0.19, 0.22, 1)
+
+[sub_resource type="StandardMaterial3D" id="Material_hand"]
+albedo_color = Color(1, 0.78, 0.35, 1)
+
+[sub_resource type="BoxMesh" id="Mesh_hand"]
+size = Vector3(0.08, 0.05, 0.14)
+material = SubResource("Material_hand")
+
+[node name="XRDemo" type="Node3D"]
+script = ExtResource("1_xr")
+
+[node name="NetSyncManager" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("2_manager")
+server_address = ""
+room_id = "default_room"
+stealth_mode = false
+transform_send_rate = 20.0
+auto_connect = true
+
+[node name="World" type="Node3D" parent="."]
+unique_name_in_owner = true
+
+[node name="Ground" type="MeshInstance3D" parent="World"]
+mesh = SubResource("Mesh_ground")
+surface_material_override/0 = SubResource("Material_ground")
+
+[node name="XROrigin3D" type="XROrigin3D" parent="."]
+
+[node name="XRCamera3D" type="XRCamera3D" parent="XROrigin3D"]
+
+[node name="RightController" type="XRController3D" parent="XROrigin3D"]
+tracker = &"right_hand"
+
+[node name="RightHandMesh" type="MeshInstance3D" parent="XROrigin3D/RightController"]
+mesh = SubResource("Mesh_hand")
+
+[node name="LeftController" type="XRController3D" parent="XROrigin3D"]
+tracker = &"left_hand"
+
+[node name="LeftHandMesh" type="MeshInstance3D" parent="XROrigin3D/LeftController"]
+mesh = SubResource("Mesh_hand")
+
+[node name="LocalAvatar" type="Node3D" parent="."]
+script = ExtResource("3_avatar")
+is_local_avatar = true
+head = NodePath("../XROrigin3D/XRCamera3D")
+right_hand = NodePath("../XROrigin3D/RightController")
+left_hand = NodePath("../XROrigin3D/LeftController")
+xr_origin = NodePath("../XROrigin3D")
+
+[node name="XRAdapter" type="Node" parent="LocalAvatar"]
+script = ExtResource("4_adapter")
+avatar = NodePath("..")
+xr_origin = NodePath("../../XROrigin3D")
+camera = NodePath("../../XROrigin3D/XRCamera3D")
+right_controller = NodePath("../../XROrigin3D/RightController")
+left_controller = NodePath("../../XROrigin3D/LeftController")
+hide_untracked_hands = true
+
+[node name="Status" type="Label3D" parent="."]
+unique_name_in_owner = true
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, -2)
+pixel_size = 0.004
+text = "connecting…"
+font_size = 64
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.7, 0.71, 0, -0.71, 0.7, 0, 6, 3)
+shadow_enabled = true
