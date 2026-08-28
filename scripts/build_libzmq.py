@@ -69,6 +69,11 @@ def cmake_arguments(platform: str, arch: str, target: str, prefix: Path) -> list
     arguments = [
         "-S",
         str(LIBZMQ_SOURCE),
+        # libzmq 4.3.5 asks for `cmake_minimum_required(VERSION 2.8.12)`, which
+        # CMake 4 refuses outright. This is CMake's documented escape hatch, and
+        # it applies only to this configure of the pinned submodule. Drop it when
+        # libzmq is bumped to a revision that raises its own minimum.
+        "-DCMAKE_POLICY_VERSION_MINIMUM=3.5",
         "-DCMAKE_BUILD_TYPE=" + build_type,
         "-DCMAKE_INSTALL_PREFIX=" + str(prefix),
         "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
@@ -116,6 +121,11 @@ def cmake_arguments(platform: str, arch: str, target: str, prefix: Path) -> list
     elif platform == "windows":
         # Static CRT keeps the .dll self-contained.
         arguments += ["-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>"]
+        # libzmq's ipc:// transport does not compile outside MSVC on Windows:
+        # it needs <afunix.h> but src/ipc_address.hpp only includes that under
+        # _MSC_VER. The client never opens an ipc:// endpoint, so switch the
+        # transport off and keep MinGW builds working too.
+        arguments += ["-DZMQ_HAVE_IPC=OFF"]
 
     return arguments
 

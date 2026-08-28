@@ -77,9 +77,12 @@ export ANDROID_NDK_ROOT=/path/to/android-ndk-r23c   # r23+ recommended
 scons platform=android target=template_release arch=arm64
 ```
 
-`ANDROID_HOME` with an `ndk/<version>` subdirectory also works — the highest
-version present is used. libzmq is built against **API level 29** with
-`c++_shared`, matching Godot's Android export template.
+`ANDROID_NDK_ROOT` is what both halves of the build follow: the GDExtension
+itself and the libzmq that gets linked into it. Left unset, godot-cpp falls back
+to `ANDROID_HOME/ndk/<the version it pins>` (23.2.8568313 for godot-cpp 4.3),
+which fails unless the SDK carries that exact version — so point
+`ANDROID_NDK_ROOT` at the NDK you want and both agree. libzmq is built against
+**API level 29** with `c++_shared`, matching Godot's Android export template.
 
 Both the debug and release variants are needed for the two Godot Android export
 presets:

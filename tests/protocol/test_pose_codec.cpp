@@ -105,8 +105,8 @@ void test_quaternion_codec_accuracy() {
         const double u3 = unit(engine);
         const double s1 = std::sqrt(1.0 - u1);
         const double s2 = std::sqrt(u1);
-        const double t1 = 2.0 * M_PI * u2;
-        const double t2 = 2.0 * M_PI * u3;
+        const double t1 = 2.0 * kPi * u2;
+        const double t2 = 2.0 * kPi * u3;
         const Quat original(s1 * std::sin(t1), s1 * std::cos(t1), s2 * std::sin(t2),
                             s2 * std::cos(t2));
 
@@ -120,7 +120,7 @@ void test_quaternion_codec_accuracy() {
         if (dot > 1.0) {
             dot = 1.0;
         }
-        const double angle_degrees = 2.0 * std::acos(dot) * (180.0 / M_PI);
+        const double angle_degrees = 2.0 * std::acos(dot) * (180.0 / kPi);
         if (angle_degrees > worst_angle_degrees) {
             worst_angle_degrees = angle_degrees;
         }

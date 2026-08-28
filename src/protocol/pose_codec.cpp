@@ -95,17 +95,17 @@ double quaternion_to_yaw_degrees(const Quat &q) {
     const Quat n = normalize_quaternion(q);
     const double siny_cosp = 2.0 * (n.w * n.y + n.z * n.x);
     const double cosy_cosp = 1.0 - 2.0 * (n.y * n.y + n.z * n.z);
-    const double yaw = std::atan2(siny_cosp, cosy_cosp) * (180.0 / M_PI);
+    const double yaw = std::atan2(siny_cosp, cosy_cosp) * (180.0 / kPi);
     return normalize_yaw_degrees(yaw);
 }
 
 Quat yaw_degrees_to_quaternion(double yaw_degrees) {
-    const double half = (yaw_degrees * (M_PI / 180.0)) * 0.5;
+    const double half = (yaw_degrees * (kPi / 180.0)) * 0.5;
     return Quat(0.0, std::sin(half), 0.0, std::cos(half));
 }
 
 Vec3 rotate_yaw_vector(const Vec3 &v, double yaw_degrees) {
-    const double yaw_rad = yaw_degrees * (M_PI / 180.0);
+    const double yaw_rad = yaw_degrees * (kPi / 180.0);
     const double cos_y = std::cos(yaw_rad);
     const double sin_y = std::sin(yaw_rad);
     return Vec3((cos_y * v.x) + (sin_y * v.z), v.y, (-sin_y * v.x) + (cos_y * v.z));

@@ -31,7 +31,7 @@ Quat axis_angle(double ax, double ay, double az, double degrees) {
     if (length <= 0.0) {
         return Quat(0, 0, 0, 1);
     }
-    const double half = degrees * (M_PI / 180.0) * 0.5;
+    const double half = degrees * (kPi / 180.0) * 0.5;
     const double s = std::sin(half) / length;
     return Quat(ax * s, ay * s, az * s, std::cos(half));
 }
@@ -50,7 +50,7 @@ double rotation_error_degrees(const Quat &a, const Quat &b) {
     const Quat relative = quaternion_multiply(quaternion_inverse(na), nb);
     const double vector_length = std::sqrt(relative.x * relative.x + relative.y * relative.y +
                                            relative.z * relative.z);
-    return 2.0 * std::atan2(vector_length, std::fabs(relative.w)) * (180.0 / M_PI);
+    return 2.0 * std::atan2(vector_length, std::fabs(relative.w)) * (180.0 / kPi);
 }
 
 void check_vec3(const Vec3 &actual, const Vec3 &expected, const char *what) {
@@ -117,8 +117,8 @@ void test_quaternion_form_equals_basis_conjugation() {
         const double u3 = unit(engine);
         const double s1 = std::sqrt(1.0 - u1);
         const double s2 = std::sqrt(u1);
-        const double t1 = 2.0 * M_PI * u2;
-        const double t2 = 2.0 * M_PI * u3;
+        const double t1 = 2.0 * kPi * u2;
+        const double t2 = 2.0 * kPi * u3;
         const Quat godot(s1 * std::sin(t1), s1 * std::cos(t1), s2 * std::sin(t2),
                          s2 * std::cos(t2));
 
@@ -212,8 +212,8 @@ void test_rotation_round_trip() {
         const double u3 = unit(engine);
         const double s1 = std::sqrt(1.0 - u1);
         const double s2 = std::sqrt(u1);
-        const double t1 = 2.0 * M_PI * u2;
-        const double t2 = 2.0 * M_PI * u3;
+        const double t1 = 2.0 * kPi * u2;
+        const double t2 = 2.0 * kPi * u3;
         const Quat original(s1 * std::sin(t1), s1 * std::cos(t1), s2 * std::sin(t2),
                             s2 * std::cos(t2));
 
@@ -241,8 +241,8 @@ void test_basis_round_trip() {
         const double u3 = unit(engine);
         const double s1 = std::sqrt(1.0 - u1);
         const double s2 = std::sqrt(u1);
-        const double t1 = 2.0 * M_PI * u2;
-        const double t2 = 2.0 * M_PI * u3;
+        const double t1 = 2.0 * kPi * u2;
+        const double t2 = 2.0 * kPi * u3;
         const Mat3 original = basis_from_quaternion(Quat(
             s1 * std::sin(t1), s1 * std::cos(t1), s2 * std::sin(t2), s2 * std::cos(t2)));
         const Mat3 restored = basis_netsync_to_godot(basis_godot_to_netsync(original));
@@ -317,8 +317,8 @@ void test_end_to_end_through_the_wire_codec() {
         const double u3 = unit(engine);
         const double s1 = std::sqrt(1.0 - u1);
         const double s2 = std::sqrt(u1);
-        godot.rotation = Quat(s1 * std::sin(2.0 * M_PI * u2), s1 * std::cos(2.0 * M_PI * u2),
-                              s2 * std::sin(2.0 * M_PI * u3), s2 * std::cos(2.0 * M_PI * u3));
+        godot.rotation = Quat(s1 * std::sin(2.0 * kPi * u2), s1 * std::cos(2.0 * kPi * u2),
+                              s2 * std::sin(2.0 * kPi * u3), s2 * std::cos(2.0 * kPi * u3));
 
         // To the wire and through the object-pose codec.
         const PoseTransform wire = transform_godot_to_netsync(godot);

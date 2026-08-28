@@ -18,6 +18,18 @@ import sys
 
 EnsureSConsVersion(4, 0)
 
+# godot-cpp resolves the Android NDK as ANDROID_HOME/ndk/<the version it pins>
+# and only falls back to ANDROID_NDK_ROOT when ANDROID_HOME is unset. On a
+# machine whose SDK does not carry that exact version — CI images included —
+# that points the build at an NDK which is not installed, while a perfectly good
+# one is named by ANDROID_NDK_ROOT. Prefer the NDK that was named explicitly,
+# which is the one scripts/build_libzmq.py picks too, so both halves of the
+# build use one toolchain. An explicit ANDROID_HOME= on the command line still
+# wins.
+if ARGUMENTS.get("platform") == "android" and "ANDROID_HOME" not in ARGUMENTS:
+    if os.environ.get("ANDROID_NDK_ROOT"):
+        os.environ["ANDROID_HOME"] = ""
+
 env = SConscript("third_party/godot-cpp/SConstruct")
 
 # --- Our sources -------------------------------------------------------------

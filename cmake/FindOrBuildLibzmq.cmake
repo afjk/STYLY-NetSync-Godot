@@ -63,7 +63,31 @@ set(WITH_TLS OFF CACHE BOOL "" FORCE)
 set(WITH_LIBSODIUM OFF CACHE BOOL "" FORCE)
 set(ZMQ_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
+# libzmq switches its ipc:// transport on for any Windows build that can see
+# <afunix.h>, but src/ipc_address.hpp only includes that header under _MSC_VER
+# and otherwise falls through to <sys/socket.h>, which does not exist on
+# Windows. A MinGW build — which is what CMake picks up on the GitHub Windows
+# image — therefore fails to compile libzmq. The client speaks tcp:// and UDP
+# only and never opens an ipc:// endpoint, so turning the transport off costs
+# nothing. Pre-seeding the cache variable also skips libzmq's own
+# check_include_files, which is what would otherwise switch it back on.
+if(WIN32)
+  set(ZMQ_HAVE_IPC OFF CACHE BOOL "" FORCE)
+endif()
+
+# libzmq 4.3.5 opens with `cmake_minimum_required(VERSION 2.8.12)`, and CMake 4
+# removed compatibility with anything below 3.5 — so on a runner with CMake 4
+# (macOS and Windows images already ship it) configuring the submodule fails
+# before a single source is read. This is the escape hatch CMake documents for
+# exactly this case: it applies to the pinned submodule for the duration of the
+# add_subdirectory below and nothing else. Drop it when libzmq is bumped to a
+# revision that raises its own minimum.
+set(STYLY_SAVED_POLICY_VERSION_MINIMUM "${CMAKE_POLICY_VERSION_MINIMUM}")
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+
 add_subdirectory("${STYLY_LIBZMQ_DIR}" "${CMAKE_BINARY_DIR}/libzmq" EXCLUDE_FROM_ALL)
+
+set(CMAKE_POLICY_VERSION_MINIMUM "${STYLY_SAVED_POLICY_VERSION_MINIMUM}")
 
 if(TARGET libzmq-static)
   set(STYLY_LIBZMQ_TARGET libzmq-static)
