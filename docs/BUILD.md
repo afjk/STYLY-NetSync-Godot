@@ -106,10 +106,11 @@ Notes for Quest and PICO:
   survives restarts and reboots. Uninstalling the app resets it, which
   re-assigns a client number on the next join.
 
-**This path has not been built or run** — no NDK was available during
-development. Nothing in the client uses an API unavailable on Android (socket
-code is plain POSIX; `getifaddrs` is present from API 24 and is only used for
-discovery), but treat the first Android build as unverified.
+**Built, but never run on a device.** CI compiles and links the arm64-v8a
+library on every push (NDK r26d, API 29) and uploads it as an artifact, so the
+toolchain path is real. Nothing in the client uses an API unavailable on
+Android, but no build has been loaded onto a headset — treat the first run on
+Quest or PICO as the unverified step.
 
 ## Building the tests
 

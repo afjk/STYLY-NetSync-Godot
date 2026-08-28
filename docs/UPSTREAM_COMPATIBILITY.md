@@ -112,9 +112,10 @@ network variable, and an RPC carrying a non-ASCII, quote-containing argument.
 | Python | 3.11.15 |
 | libzmq | 4.3.5, built from the vendored submodule, linked statically |
 
-**Not yet run on real hardware.** macOS, Windows, Android/Quest/PICO and XR
-device paths are implemented and the build is parameterised for them, but this
-work was verified only on Linux desktop. See *Known gaps* below.
+**Not yet run on real hardware.** CI builds and runs the native suite on
+macOS and Windows as well as Linux, and builds the Android arm64 library; the
+addon-level tests against a real server run on Linux only, and nothing has been
+run on a Quest, a PICO or any XR device. See *Known gaps* below.
 
 ## Known differences from upstream
 
@@ -216,13 +217,14 @@ Deliberately out of scope, with the reasoning:
   verified against the real server that Unity talks to, which together pin the
   wire format — but the final Unity-in-the-loop check is a manual procedure,
   written up in [`INTEROP_TEST.md`](INTEROP_TEST.md).
-* **Android has not been built or run.** No NDK was available.
-  `scripts/build_libzmq.py` implements the arm64-v8a path (API 29,
-  `c++_shared`) and no API used by the client is unavailable on Android, but
-  this is untested. See [`BUILD.md`](BUILD.md#android).
-* **macOS and Windows have not been built.** The SCons and CMake paths handle
-  them and the code has no Linux-only dependency (socket code is behind
-  `_WIN32` branches), but neither has been compiled.
+* **Android has not been run.** CI builds and links the arm64-v8a library
+  (NDK r26d, API 29, `c++_shared`) on every push, so the toolchain path is
+  exercised, but no build has been loaded onto a headset. See
+  [`BUILD.md`](BUILD.md#android).
+* **macOS and Windows run the native suite only.** Both build and pass all nine
+  suites in CI — on macOS with AppleClang, on Windows with MinGW GCC. What does
+  not run there is the addon-level pass: the GDExtension against a real server,
+  and the two Godot clients end to end, are Linux-only in CI.
 * **Godot 4.3 headless editor shutdown.** `godot --headless --editor --quit`
   crashes intermittently (2 of 5 runs) at shutdown with this addon enabled.
   Running the game is unaffected (0 of 3), and **Godot 4.4.1 does not exhibit it
