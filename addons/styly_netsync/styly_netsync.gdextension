@@ -1,0 +1,41 @@
+[configuration]
+
+entry_symbol = "styly_netsync_library_init"
+compatibility_minimum = "4.3"
+reloadable = false
+
+[libraries]
+
+; The `editor.*` keys point at the template_debug binaries on purpose. Godot 4.2+
+; gives the editor its own feature tag, so without them the editor silently loads
+; no library and every `NetSyncBridge` reference fails to parse. This extension
+; uses no editor-only Godot API, so the template_debug build serves the editor
+; too — which means one `scons target=template_debug` is enough to work in the
+; editor and to run a debug export. Add `target=template_release` before
+; shipping. If you would rather build a dedicated editor binary
+; (`scons target=editor`), repoint these five keys at the `.editor.` files.
+
+linux.editor.x86_64    = "res://addons/styly_netsync/bin/libstyly_netsync.linux.template_debug.x86_64.so"
+linux.debug.x86_64     = "res://addons/styly_netsync/bin/libstyly_netsync.linux.template_debug.x86_64.so"
+linux.release.x86_64   = "res://addons/styly_netsync/bin/libstyly_netsync.linux.template_release.x86_64.so"
+linux.editor.arm64     = "res://addons/styly_netsync/bin/libstyly_netsync.linux.template_debug.arm64.so"
+linux.debug.arm64      = "res://addons/styly_netsync/bin/libstyly_netsync.linux.template_debug.arm64.so"
+linux.release.arm64    = "res://addons/styly_netsync/bin/libstyly_netsync.linux.template_release.arm64.so"
+
+windows.editor.x86_64  = "res://addons/styly_netsync/bin/libstyly_netsync.windows.template_debug.x86_64.dll"
+windows.debug.x86_64   = "res://addons/styly_netsync/bin/libstyly_netsync.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "res://addons/styly_netsync/bin/libstyly_netsync.windows.template_release.x86_64.dll"
+
+macos.editor           = "res://addons/styly_netsync/bin/libstyly_netsync.macos.template_debug.framework"
+macos.debug            = "res://addons/styly_netsync/bin/libstyly_netsync.macos.template_debug.framework"
+macos.release          = "res://addons/styly_netsync/bin/libstyly_netsync.macos.template_release.framework"
+
+android.debug.arm64    = "res://addons/styly_netsync/bin/libstyly_netsync.android.template_debug.arm64.so"
+android.release.arm64  = "res://addons/styly_netsync/bin/libstyly_netsync.android.template_release.arm64.so"
+android.debug.x86_64   = "res://addons/styly_netsync/bin/libstyly_netsync.android.template_debug.x86_64.so"
+android.release.x86_64 = "res://addons/styly_netsync/bin/libstyly_netsync.android.template_release.x86_64.so"
+
+[dependencies]
+
+; libzmq is linked statically into each library above, so there is nothing to
+; ship alongside them. See docs/BUILD.md.

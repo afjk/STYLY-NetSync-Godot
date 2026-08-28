@@ -1,0 +1,25 @@
+; Engine configuration file.
+;
+; This repository is itself a Godot project so the samples can be opened and run
+; directly. To use STYLY NetSync in your own project, copy
+; `addons/styly_netsync` (including `bin/`) into it — nothing else here is
+; required at runtime.
+
+config_version=5
+
+[application]
+
+config/name="STYLY NetSync for Godot"
+config/description="Godot client for STYLY NetSync. Open samples/basic/basic_demo.tscn to try it."
+run/main_scene="res://samples/basic/basic_demo.tscn"
+config/features=PackedStringArray("4.3", "Forward Plus")
+config/icon="res://addons/styly_netsync/icons/net_sync_manager.svg"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/styly_netsync/plugin.cfg")

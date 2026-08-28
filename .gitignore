@@ -15,3 +15,27 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# Build output
+build/
+bin/
+.sconsign.dblite
+*.os
+*.obj
+*.o
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+*.pdb
+*.exp
+compile_commands.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Godot must not import third-party sources or build output
+third_party/**/*.import
